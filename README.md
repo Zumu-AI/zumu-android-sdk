@@ -45,7 +45,7 @@ dependencies {
 
 ### 1. Get Your API Key
 
-1. Log in to the [Zumu Dashboard](https://your-domain.com/dashboard)
+1. Log in to the [Zumu Dashboard](https://translator.zumu.ai/dashboard)
 2. Navigate to **API Keys**
 3. Click **Create API Key**
 4. Copy your key (format: `zumu_xxxxxxxxxxxx`)
@@ -419,7 +419,7 @@ val isMuted: StateFlow<Boolean>                 // Microphone mute state
 
 ```kotlin
 // Initialize translator
-ZumuTranslator(apiKey: String, baseURL: String = "https://your-domain.com/api")
+ZumuTranslator(apiKey: String, baseURL: String = "https://translator.zumu.ai")
 
 // Start a new session
 suspend fun startSession(config: SessionConfig, context: Context): TranslationSession
@@ -585,9 +585,9 @@ If using ProGuard, add these rules:
 
 ## Support
 
-- Documentation: https://docs.your-domain.com
-- Dashboard: https://your-domain.com/dashboard
-- Email: support@your-domain.com
+- Documentation: https://translator.zumu.ai/docs
+- Dashboard: https://translator.zumu.ai/dashboard
+- Email: support@zumu.ai
 
 ## License
 
