@@ -35,6 +35,7 @@ class ZumuTranslator(
 
     private var currentSession: TranslationSession? = null
     private val httpClient = OkHttpClient()
+    private var isStarting: Boolean = false
 
     // MARK: - Session Management
 
@@ -46,15 +47,23 @@ class ZumuTranslator(
      * @throws ZumuException if session creation fails
      */
     suspend fun startSession(config: SessionConfig, context: Context): TranslationSession {
+        // Prevent race conditions from double-clicks
+        if (isStarting) {
+            throw ZumuException.InvalidState("Session start already in progress")
+        }
+
         if (_state.value != SessionState.Idle) {
             throw ZumuException.InvalidState("Cannot start session while in state: ${_state.value}")
         }
 
+        isStarting = true
         _state.value = SessionState.Connecting
+        var createdSession: TranslationSession? = null
 
         try {
             // Step 1: Create session on backend
             val session = createBackendSession(config)
+            createdSession = session
             currentSession = session
 
             // Step 2: Start conversation
@@ -67,9 +76,33 @@ class ZumuTranslator(
             return session
 
         } catch (e: Exception) {
-            _state.value = SessionState.Error(e.message ?: "Failed to start session")
+            // Clean up partial session if created
+            createdSession?.let {
+                try {
+                    updateSessionStatus(it.id, "failed")
+                } catch (cleanup: Exception) {
+                    // Ignore cleanup errors
+                }
+            }
+
+            // Reset to idle to allow retry (enterprise-grade error recovery)
+            _state.value = SessionState.Idle
+            currentSession = null
             throw ZumuException.ApiError(e.message ?: "Failed to start session")
+        } finally {
+            isStarting = false
         }
+    }
+
+    /**
+     * Reset error state to allow retry
+     * Call this when you want to retry after an error
+     */
+    fun resetState() {
+        _state.value = SessionState.Idle
+        currentSession = null
+        _messages.value = emptyList()
+        isStarting = false
     }
 
     /**
@@ -150,7 +183,8 @@ class ZumuTranslator(
         val response = httpClient.newCall(request).execute()
 
         if (!response.isSuccessful) {
-            throw IOException("Failed to create session: ${response.code}")
+            val errorBody = response.body?.string() ?: "No response body"
+            throw IOException("Failed to create session (HTTP ${response.code}): $errorBody")
         }
 
         val responseData = JSONObject(response.body?.string() ?: "{}")
@@ -176,7 +210,8 @@ class ZumuTranslator(
         val response = httpClient.newCall(request).execute()
 
         if (!response.isSuccessful) {
-            throw IOException("Failed to start conversation: ${response.code}")
+            val errorBody = response.body?.string() ?: "No response body"
+            throw IOException("Failed to start conversation (HTTP ${response.code}): $errorBody")
         }
 
         val responseData = JSONObject(response.body?.string() ?: "{}")
@@ -202,7 +237,8 @@ class ZumuTranslator(
         val response = httpClient.newCall(request).execute()
 
         if (!response.isSuccessful) {
-            throw IOException("Failed to update session: ${response.code}")
+            val errorBody = response.body?.string() ?: "No response body"
+            throw IOException("Failed to update session (HTTP ${response.code}): $errorBody")
         }
     }
 }
