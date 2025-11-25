@@ -70,12 +70,27 @@ class ZumuTranslator(
             val conversationData = startConversation(session.id)
 
             // TODO: Initialize WebSocket connection with conversationData.signedUrl
+            // IMPORTANT: When implementing WebSocket:
+            // 1. Verify connection with ping before proceeding
+            // 2. If connection fails, throw exception immediately (don't continue)
+            // 3. Handle disconnects during active session with auto-reset to Idle
+            // 4. See iOS SDK for reference implementation
+
             // TODO: Set up audio capture
+            // IMPORTANT: When implementing audio:
+            // 1. Use retry logic (3 attempts with small delays)
+            // 2. Handle audio device initialization failures gracefully
+            // 3. Clean up audio resources on any failure
 
             _state.value = SessionState.Active
             return session
 
         } catch (e: Exception) {
+            // TODO: When WebSocket implemented, add cleanup here:
+            // - Cancel WebSocket connection
+            // - Stop audio capture
+            // - Release all resources
+
             // Clean up partial session if created
             createdSession?.let {
                 try {
@@ -88,7 +103,7 @@ class ZumuTranslator(
             // Reset to idle to allow retry (enterprise-grade error recovery)
             _state.value = SessionState.Idle
             currentSession = null
-            throw ZumuException.ApiError(e.message ?: "Failed to start session")
+            throw ZumuException.NetworkError(e.message ?: "Failed to start session: ${e.localizedMessage}")
         } finally {
             isStarting = false
         }
