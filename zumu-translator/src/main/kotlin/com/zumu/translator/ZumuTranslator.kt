@@ -217,9 +217,7 @@ class ZumuTranslator(
         val responseData = JSONObject(response.body?.string() ?: "{}")
 
         return ConversationData(
-            conversationId = responseData.getString("conversation_id"),
-            signedUrl = responseData.getString("signed_url"),
-            agentId = responseData.getString("agent_id")
+            signedUrl = responseData.getString("signed_url")
         )
     }
 
@@ -280,9 +278,7 @@ data class TranslationMessage(
 )
 
 data class ConversationData(
-    val conversationId: String,
-    val signedUrl: String,
-    val agentId: String
+    val signedUrl: String
 )
 
 // MARK: - Errors
